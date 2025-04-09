@@ -1,0 +1,28 @@
+let
+    DataMin = List.Min(fprecos_referencia[dh_data_publicacao_preco]),
+    DataMax = List.Max(fprecos_referencia[dh_data_publicacao_preco]),
+    AnoMin = Date.Year(DataMin),
+    AnoMax = Date.Year(DataMax),
+    DataInicial = #date(AnoMin, 1, 1),
+    DataFinal = #date(AnoMax, 12, 31),
+    Duracao = Duration.Days(DataFinal - DataInicial) + 1,
+    
+    Fonte = List.Dates(DataInicial, Duracao, #duration(1, 0, 0, 0)),
+    #"Convertido para Tabela" = Table.FromList(Fonte, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Colunas Renomeadas" = Table.RenameColumns(#"Convertido para Tabela",{{"Column1", "Data"}}),
+    #"Ano Inserido" = Table.AddColumn(#"Colunas Renomeadas", "Ano", each Date.Year([Data]), Int64.Type),
+    #"Mês Inserido" = Table.AddColumn(#"Ano Inserido", "Mês", each Date.Month([Data]), Int64.Type),
+    #"Nome do Mês Inserido" = Table.AddColumn(#"Mês Inserido", "Nome do Mês", each Date.MonthName([Data]), type text),
+    #"Dia Inserido" = Table.AddColumn(#"Nome do Mês Inserido", "Dia", each Date.Day([Data]), Int64.Type),
+    #"Dia da Semana Inserido" = Table.AddColumn(#"Dia Inserido", "Dia da Semana", each Date.DayOfWeek([Data]), Int64.Type),
+    #"Trimestre Inserido" = Table.AddColumn(#"Dia da Semana Inserido", "Trimestre", each Date.QuarterOfYear([Data]), Int64.Type),
+    #"Coluna Personalizada Adicionada" = Table.AddColumn(#"Trimestre Inserido", "Personalizar", each Text.Combine({Text.Start([Nome do Mês], 3), "-", Text.From([Ano], "pt-BR")}), type text),
+    #"Colunas Renomeadas1" = Table.RenameColumns(#"Coluna Personalizada Adicionada",{{"Personalizar", "Mes-Ano"}}),
+    #"Personalização Adicionada" = Table.AddColumn(#"Colunas Renomeadas1", "Personalizar", each 100 * [Ano] + [Mês]),
+    #"Colunas Renomeadas2" = Table.RenameColumns(#"Personalização Adicionada",{{"Personalizar", "Class Mes-Ano"}}),
+    #"Personalização Adicionada1" = Table.AddColumn(#"Colunas Renomeadas2", "Mes abrev", each Text.Start([Nome do Mês], 3)),
+    #"Tipo Alterado" = Table.TransformColumnTypes(#"Personalização Adicionada1",{{"Class Mes-Ano", Int64.Type}, {"Mes abrev", type text}, {"Data", type date}}),
+    #"Linhas Classificadas" = Table.Sort(#"Tipo Alterado",{{"Mes abrev", Order.Ascending}})
+
+in
+    #"Linhas Classificadas"
